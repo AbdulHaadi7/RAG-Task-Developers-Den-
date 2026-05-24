@@ -28,14 +28,8 @@ documind/
 
 ## Setup
 
-### 1. Clone the repository
 
-```bash
-git clone <your-repo-url>
-cd documind
-```
-
-### 2. Create and activate a virtual environment
+### 1. Create and activate a virtual environment
 
 ```bash
 python -m venv venv
@@ -47,13 +41,13 @@ source venv/bin/activate
 venv\Scripts\activate
 ```
 
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure your API key
+### 3. Configure your API key
 
 ```bash
 cp .env.example .env
@@ -67,13 +61,13 @@ GROQ_API_KEY=your_groq_api_key_here
 
 Get a free key at [console.groq.com](https://console.groq.com).
 
-### 5. Run the server
+### 4. Run the server
 
 ```bash
 python app.py
 ```
 
-Open **http://localhost:8000** in your browser.
+Open **http://127.0.0.1:8000/** in your browser.
 
 ## How It Works
 
