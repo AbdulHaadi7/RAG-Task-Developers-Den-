@@ -29,7 +29,7 @@ from groq import Groq
 import uvicorn
 
 # --- config stuff ---
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "your_api_key"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 TOP_K          = int(os.getenv("TOP_K", "5"))
 MAX_TOKENS     = int(os.getenv("MAX_TOKENS", "1024"))
