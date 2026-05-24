@@ -56,7 +56,7 @@ cp .env.example .env
 Open `.env` and set your Groq API key:
 
 ```
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=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
 ```
 
 Get a free key at [console.groq.com](https://console.groq.com).
