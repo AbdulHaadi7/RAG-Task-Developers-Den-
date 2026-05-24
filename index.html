@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DocuMind — RAG Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0d0f12;
+      --surface:   #13161c;
+      --surface2:  #1a1e27;
+      --border:    #252b38;
+      --accent:    #4fffb0;
+      --accent2:   #4db8ff;
+      --danger:    #ff5e5e;
+      --text:      #d4dae8;
+      --dim:       #5c657a;
+      --muted:     #3a404f;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+      --r:         6px;
+      --sw:        320px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; overflow: hidden; }
+    body { display: flex; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sw); min-width: var(--sw); height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+    }
+    .logo-icon { font-size: 22px; color: var(--accent); }
+    .logo-text { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: .04em; }
+
+    .panel { padding: 16px 20px; }
+    .panel-title { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .panel-head .panel-title { margin-bottom: 0; }
+    .icon-btn { background: none; border: none; color: var(--dim); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: var(--r); transition: color .2s, background .2s; }
+    .icon-btn:hover { color: var(--accent); background: var(--surface2); }
+
+    .drop-zone {
+      border: 1px dashed var(--border); border-radius: var(--r);
+      padding: 20px 16px; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(79,255,176,.04); }
+    .drop-icon { font-size: 22px; color: var(--accent); margin-bottom: 8px; }
+    .drop-label { font-size: 13px; color: var(--dim); }
+    .browse { color: var(--accent2); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .drop-hint { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+    .upload-status { margin-top: 10px; font-size: 12px; min-height: 16px; }
+    .upload-status.ok  { color: var(--accent); }
+    .upload-status.err { color: var(--danger); }
+    .upload-status.loading { color: var(--dim); }
+
+    .docs-panel { flex: 1; overflow-y: auto; border-top: 1px solid var(--border); }
+    .doc-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .doc-empty { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+    .doc-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 8px 10px;
+      font-family: var(--mono); font-size: 12px; gap: 8px; word-break: break-all;
+    }
+    .doc-name { flex: 1; }
+    .doc-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 2px; transition: color .2s; flex-shrink: 0; }
+    .doc-del:hover { color: var(--danger); }
+
+    .session-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-top: 1px solid var(--border); background: var(--surface);
+    }
+    .session-label { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+    .clear-btn { font-family: var(--mono); font-size: 11px; background: none; border: 1px solid var(--border); color: var(--dim); padding: 4px 10px; border-radius: var(--r); cursor: pointer; transition: border-color .2s, color .2s; }
+    .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── CHAT ── */
+    .chat-area { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 13px; color: var(--dim); background: var(--surface);
+    }
+    .model-badge { font-size: 11px; background: var(--surface2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px; color: var(--accent); }
+
+    .messages { flex: 1; overflow-y: auto; padding: 28px; display: flex; flex-direction: column; gap: 20px; }
+    .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 10px; color: var(--dim); opacity: .7; }
+    .welcome-icon { font-size: 36px; color: var(--accent); opacity: .5; }
+    .welcome-hint { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+    .msg { max-width: 800px; display: flex; flex-direction: column; gap: 4px; animation: fadeUp .25s ease both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; }
+    .msg-role { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .msg.user .msg-role { color: var(--accent2); }
+    .msg.assistant .msg-role { color: var(--accent); }
+    .msg-bubble { padding: 12px 16px; border-radius: var(--r); line-height: 1.7; font-size: 14px; max-width: 680px; white-space: pre-wrap; word-break: break-word; }
+    .msg.user .msg-bubble { background: var(--surface2); border: 1px solid var(--border); }
+    .msg.assistant .msg-bubble { background: rgba(79,255,176,.04); border: 1px solid rgba(79,255,176,.15); }
+    .msg-sources { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .msg-sources span { color: var(--accent2); }
+
+    .typing-dots span { display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-right: 3px; animation: blink 1.2s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: .2s; }
+    .typing-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,80%,100% { opacity:.15; transform:scale(.8); } 40% { opacity:1; transform:scale(1); } }
+
+    .input-bar { display: flex; gap: 10px; padding: 16px 28px; border-top: 1px solid var(--border); background: var(--surface); align-items: flex-end; }
+    .input-bar textarea { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 14px; padding: 12px 14px; border-radius: var(--r); resize: none; max-height: 140px; line-height: 1.5; outline: none; transition: border-color .2s; }
+    .input-bar textarea:focus { border-color: var(--accent); }
+    .input-bar textarea::placeholder { color: var(--muted); }
+    .input-bar button { background: var(--accent); color: #0d0f12; font-family: var(--mono); font-size: 13px; font-weight: 600; border: none; padding: 12px 20px; border-radius: var(--r); cursor: pointer; white-space: nowrap; transition: opacity .2s, transform .1s; }
+    .input-bar button:hover { opacity: .85; }
+    .input-bar button:active { transform: scale(.97); }
+    .input-bar button:disabled { opacity: .4; cursor: not-allowed; }
+
+    @media (max-width: 700px) {
+      body { flex-direction: column; overflow: auto; }
+      .sidebar { width: 100%; min-width: unset; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      .chat-area { height: 70vh; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- sidebar - upload + doc list -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">*</span>
+      <span class="logo-text">DocuMind</span>
+    </div>
+
+    <section class="panel">
+      <h2 class="panel-title">Upload Documents</h2>
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">^</div>
+        <p class="drop-label">Drop files or <label for="fileInput" class="browse">browse</label></p>
+        <p class="drop-hint">PDF - DOCX - TXT</p>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt" multiple hidden/>
+      </div>
+      <div id="uploadStatus" class="upload-status"></div>
+    </section>
+
+    <section class="panel docs-panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Indexed Documents</h2>
+        <button class="icon-btn" id="refreshDocs" title="Refresh">R</button>
+      </div>
+      <ul id="docList" class="doc-list">
+        <li class="doc-empty">No documents indexed yet.</li>
+      </ul>
+    </section>
+
+    <div class="session-bar">
+      <span class="session-label">Session: <span id="sessionId">—</span></span>
+      <button class="clear-btn" id="clearBtn">Clear Chat</button>
+    </div>
+  </aside>
+
+  <!-- main chat area -->
+  <main class="chat-area">
+    <header class="chat-header">
+      <span>Chat</span>
+      <span class="model-badge">Groq - LLaMA 3</span>
+    </header>
+    <div class="messages" id="messages">
+      <div class="welcome">
+        <p class="welcome-icon">*</p>
+        <p>Upload a document and start asking questions.</p>
+        <p class="welcome-hint">All answers are grounded in your uploaded files.</p>
+      </div>
+    </div>
+    <form class="input-bar" id="chatForm">
+      <textarea id="questionInput" placeholder="Ask a question about your documents..." rows="1" required></textarea>
+      <button type="submit" id="sendBtn">Send Enter</button>
+    </form>
+  </main>
+
+  <script>
+    // generate or reuse session id so history persists across page refreshes
+    const SESSION_ID = localStorage.getItem("documind_session") || "s_" + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem("documind_session", SESSION_ID);
+    document.getElementById("sessionId").textContent = SESSION_ID;
+
+    // save chat history in localStorage so it survives page refresh
+    const HISTORY_KEY = "documind_history_" + SESSION_ID;
+    let chatHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+
+    function saveHistory() {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory.slice(-50)));
+    }
+
+    function loadHistory() {
+      if (!chatHistory.length) { appendWelcome(); return; }
+      chatHistory.forEach(m => renderMsg(m.role, m.text, m.sources || []));
+    }
+
+    // grab all the dom elements i need
+    const dropZone      = document.getElementById("dropZone");
+    const fileInput     = document.getElementById("fileInput");
+    const uploadStatus  = document.getElementById("uploadStatus");
+    const docList       = document.getElementById("docList");
+    const messages      = document.getElementById("messages");
+    const chatForm      = document.getElementById("chatForm");
+    const questionInput = document.getElementById("questionInput");
+    const sendBtn       = document.getElementById("sendBtn");
+
+    // drag and drop + click to browse upload
+    dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("over"); });
+    dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("over"));
+    dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("over"); handleFiles(e.dataTransfer.files); });
+    dropZone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => { handleFiles(fileInput.files); fileInput.value = ""; });
+
+    async function handleFiles(files) {
+      for (const f of files) await uploadFile(f);
+      loadDocs();
+    }
+
+    async function uploadFile(file) {
+      setStatus(`Uploading "${file.name}"...`, "loading");
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res  = await fetch("/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Upload failed");
+        setStatus(data.message, "ok");
+      } catch (err) {
+        setStatus("x " + err.message, "err");
+      }
+    }
+
+    function setStatus(msg, cls = "") {
+      uploadStatus.textContent = msg;
+      uploadStatus.className   = "upload-status " + cls;
+    }
+
+    // load and show the list of indexed docs in the sidebar
+    async function loadDocs() {
+      try {
+        const data = await (await fetch("/documents")).json();
+        renderDocs(data.documents || []);
+      } catch { renderDocs([]); }
+    }
+
+    function renderDocs(docs) {
+      docList.innerHTML = "";
+      if (!docs.length) { docList.innerHTML = '<li class="doc-empty">No documents indexed yet.</li>'; return; }
+      docs.forEach(name => {
+        const li = document.createElement("li");
+        li.className = "doc-item";
+        li.innerHTML = `<span class="doc-name">${esc(name)}</span><button class="doc-del" data-name="${esc(name)}" title="Remove">x</button>`;
+        docList.appendChild(li);
+      });
+    }
+
+    docList.addEventListener("click", async e => {
+      const btn = e.target.closest(".doc-del");
+      if (!btn) return;
+      const name = btn.dataset.name;
+      if (!confirm(`Remove "${name}"?`)) return;
+      await fetch(`/documents/${encodeURIComponent(name)}`, { method: "DELETE" });
+      loadDocs();
+    });
+
+    document.getElementById("refreshDocs").addEventListener("click", loadDocs);
+
+    // handle sending a message and showing the response
+    chatForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      const q = questionInput.value.trim();
+      if (!q) return;
+      questionInput.value = "";
+      autoResize();
+      clearWelcome();
+      renderMsg("user", q);
+      chatHistory.push({ role: "user", text: q, sources: [] });
+      saveHistory();
+      const typing = appendTyping();
+      sendBtn.disabled = true;
+      try {
+        const res  = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q, session_id: SESSION_ID }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error");
+        typing.remove();
+        renderMsg("assistant", data.answer, data.sources);
+        chatHistory.push({ role: "assistant", text: data.answer, sources: data.sources });
+        saveHistory();
+      } catch (err) {
+        typing.remove();
+        renderMsg("assistant", "Error: " + err.message);
+      } finally {
+        sendBtn.disabled = false;
+        questionInput.focus();
+      }
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", async () => {
+      await fetch(`/chat/${SESSION_ID}`, { method: "DELETE" });
+      chatHistory = [];
+      saveHistory();
+      messages.innerHTML = "";
+      appendWelcome();
+    });
+
+    // render messages into the chat
+    function clearWelcome() { const w = messages.querySelector(".welcome"); if (w) w.remove(); }
+
+    function appendWelcome() {
+      messages.innerHTML = `<div class="welcome"><p class="welcome-icon">*</p><p>Upload a document and start asking questions.</p><p class="welcome-hint">All answers are grounded in your uploaded files.</p></div>`;
+    }
+
+    function renderMsg(role, text, sources = []) {
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      const label = role === "user" ? "You" : "DocuMind";
+      const srcHtml = sources?.length
+        ? `<div class="msg-sources">Sources: ${sources.map(s => `<span>${esc(s)}</span>`).join(", ")}</div>`
+        : "";
+      div.innerHTML = `<div class="msg-role">${label}</div><div class="msg-bubble">${esc(text)}</div>${srcHtml}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+      return div;
+    }
+
+    function appendTyping() {
+      const div = document.createElement("div");
+      div.className = "msg assistant";
+      div.innerHTML = `<div class="msg-role">DocuMind</div><div class="msg-bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+      return div;
+    }
+
+    // auto grow the textarea as user types, submit on enter
+    questionInput.addEventListener("input", autoResize);
+    questionInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatForm.requestSubmit(); }
+    });
+    function autoResize() {
+      questionInput.style.height = "auto";
+      questionInput.style.height = Math.min(questionInput.scrollHeight, 140) + "px";
+    }
+
+    // escape html to avoid xss when rendering user content
+    function esc(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    // kick everything off on page load
+    loadDocs();
+    loadHistory();
+  </script>
+</body>
+</html>
